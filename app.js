@@ -195,6 +195,7 @@
       container.appendChild(buildRoleCard(entry.role, {
         rank: i + 1,
         matchPct: entry.matchPct,
+        exactFit: entry.exactFit,
         reasons: entry.reasons,
         highlight: true
       }));
@@ -249,7 +250,8 @@
   function buildRoleCard(role, options) {
     options = options || {};
     var card = document.createElement("article");
-    card.className = "role-card" + (options.highlight ? " is-top" : "");
+    card.className = "role-card" + (options.highlight ? " is-top" : "") +
+                     (options.exactFit ? " is-exact-fit" : "");
 
     var html = '<div class="role-head">';
 
@@ -261,6 +263,12 @@
               "<h3>" + esc(role.name) + "</h3>" +
               '<span class="tag">' + esc(role.category) + "</span>";
 
+    // התאמת כפפה. התג עצמו קצר — טקסט ארוך היה נשבר לשתי שורות בתוך הגלולה
+    // בטלפון — וההסבר מגיע במשפט נפרד מתחת לשורת התיאור.
+    if (options.exactFit) {
+      html += '<span class="tag tag-exact">כפפה ליד</span>';
+    }
+
     // תג שמבדיל תפקיד שמקורו בדף התפקידים הרשמי — שם מתפרסמים תיאור
     // ודרישות אך לא שכר, הכשרה והתקדמות — מתפקיד שכל עובדותיו במאגר.
     if (role.source !== "kb") {
@@ -270,6 +278,11 @@
 
     if (options.rank) {
       html += '<p class="role-oneliner">' + esc(role.oneLiner) + "</p>";
+    }
+
+    // בלי המשפט הזה המועמד רואה תפקיד בראש הרשימה ולא יודע *למה* הוא ראשון.
+    if (options.exactFit) {
+      html += '<p class="exact-note">הרקע שלך הוא בדיוק מה שהתפקיד דורש — ולכן הוא ראשון.</p>';
     }
     html += "</div>";
 

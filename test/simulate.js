@@ -28,6 +28,7 @@ vm.createContext(sandbox);
 
 const QUESTIONS = vm.runInContext("QUESTIONS", sandbox);
 const ROLES = vm.runInContext("ROLES", sandbox);
+const CONFIG = vm.runInContext("CONFIG", sandbox);
 const computeResults = vm.runInContext("computeResults", sandbox);
 const visibleQuestions = vm.runInContext("visibleQuestions", sandbox);
 
@@ -68,23 +69,39 @@ ROLES.forEach(r => { roleById[r.id] = r; });
 const counts = {};
 let coreSlots = 0, primarySlots = 0, adminTrack = 0, coreTrack = 0;
 let dispatcherAppears = 0, tooFewCore = 0, emptyResults = 0;
+let exactFitProfiles = 0, exactFitNotFirst = 0, exactFitBelowFloor = 0, noPrimaryCore = 0;
 
 for (let i = 0; i < N; i++) {
   const res = computeResults(randomAnswers());
   if (res.top3.length !== 3) emptyResults++;
   if (res.track === "admin") adminTrack++; else coreTrack++;
 
-  let coreInThis = 0;
+  let coreInThis = 0, primaryInThis = 0;
   res.top3.forEach(e => {
     counts[e.id] = (counts[e.id] || 0) + 1;
     const track = roleById[e.id].track;
     if (track === "core") {
       coreSlots++; coreInThis++;
-      if (PRIMARY.indexOf(e.id) !== -1) primarySlots++;
+      if (PRIMARY.indexOf(e.id) !== -1) { primarySlots++; primaryInThis++; }
     }
   });
   if (res.top3.some(e => e.id === "dispatcher")) dispatcherAppears++;
-  if (res.track === "core" && coreInThis < 2) tooFewCore++;
+
+  // התאמת כפפה: כשהיא קיימת היא חייבת להיות ראשונה ומעל רצפת האחוזים.
+  const exact = res.top3.filter(e => e.exactFit);
+  if (exact.length > 0) {
+    exactFitProfiles++;
+    if (res.top3[0].exactFit !== true) exactFitNotFirst++;
+    if (exact.some(e => e.matchPct < CONFIG.EXACT_FIT_MIN_PCT)) exactFitBelowFloor++;
+  }
+
+  // הכפפה לוקחת אחת משתי משבצות הליבה השמורות, ולכן במסלול ליבה הדרישה
+  // היא שתי משבצות ליבה — או אחת כשהכפפה לקחה את השנייה. מה שלא נסוג
+  // בשום מצב הוא ההבטחה לתפקיד ליבה *ראשי* אחד לפחות.
+  if (res.track === "core") {
+    if (coreInThis < (exact.length > 0 ? 1 : 2)) tooFewCore++;
+    if (primaryInThis < 1) noPrimaryCore++;
+  }
 }
 
 const pct = (a, b) => b === 0 ? "0.0" : (a / b * 100).toFixed(1);
@@ -126,7 +143,14 @@ assert("רוב המשבצות הן תפקידי ליבה", coreSlots / (N * 3) >
 assert("משל\"ט מופיע בלפחות 15% מהפרופילים", dispatcherAppears / N >= 0.15,
        pct(dispatcherAppears, N) + "%");
 assert("כל פרופיל קיבל 3 המלצות", emptyResults === 0, emptyResults + " חריגים");
-assert("במסלול ליבה תמיד לפחות 2 תפקידי ליבה", tooFewCore === 0, tooFewCore + " חריגים");
+assert("במסלול ליבה — 2 תפקידי ליבה, או 1 כשהכפפה לקחה משבצת",
+       tooFewCore === 0, tooFewCore + " חריגים");
+assert("במסלול ליבה תמיד לפחות תפקיד ליבה ראשי אחד",
+       noPrimaryCore === 0, noPrimaryCore + " חריגים");
+assert("התאמת כפפה מופיעה תמיד ראשונה", exactFitNotFirst === 0,
+       exactFitProfiles + " פרופילים עם כפפה, " + exactFitNotFirst + " חריגים");
+assert("התאמת כפפה תמיד מעל רצפת האחוזים", exactFitBelowFloor === 0,
+       exactFitBelowFloor + " חריגים");
 
 console.log("");
 if (problems === 0) {

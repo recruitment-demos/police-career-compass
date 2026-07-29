@@ -134,6 +134,35 @@ function computeEarned(answers, questions) {
   return earned;
 }
 
+/**
+ * לכל תפקיד: בכמה שאלות *שונות* התשובות תרמו לו נקודה כלשהי.
+ *
+ * זה מדד רוחב הראיות, ולא עוצמתן. אחוז ההתאמה הוא ניקוד מנורמל, ולכן תפקיד
+ * שרק שלוש-ארבע שאלות נוגעות בו מגיע ל-100% בקלות רבה יותר מתפקיד ששתים-עשרה
+ * שאלות נוגעות בו — אותו אחוז, בסיס ראייתי שונה לגמרי. הספירה הזו מאפשרת
+ * להבדיל ביניהם בלי לשנות את הניקוד עצמו.
+ */
+function computeEvidence(answers, questions) {
+  const list = questions || visibleQuestions(answers);
+  const evidence = {};
+  ROLES.forEach(role => { evidence[role.id] = 0; });
+
+  list.forEach(question => {
+    const touched = {};
+    getSelectedOptions(question, answers).forEach(option => {
+      Object.keys(option.scores || {}).forEach(roleId => {
+        if (option.scores[roleId] > 0) touched[roleId] = true;
+      });
+    });
+    Object.keys(touched).forEach(roleId => {
+      if (evidence[roleId] == null) return;
+      evidence[roleId] += 1;
+    });
+  });
+
+  return evidence;
+}
+
 // ── ניקוד מרבי לנרמול ──────────────────────────────────────────────────────
 
 /**
@@ -249,6 +278,26 @@ function checkGates(role, profile) {
   return { passed: unmet.length === 0, unmet };
 }
 
+// ── התאמת כפפה ─────────────────────────────────────────────────────────────
+
+/**
+ * האם הרקע האקדמי של המועמד הוא בדיוק מה שהתפקיד דורש.
+ *
+ * `requiresFieldMatch` הוא השער היחיד שמבטא זהות מקצועית ולא נכונות כללית:
+ * הוא נגזר מדרישה שהתפקיד עצמו מפרסם ("תואר ראשון בעבודה סוציאלית"), ומי
+ * שעומד בו אינו סתם מתאים לתפקיד — הוא האדם שהתפקיד מחפש. שאר השערים
+ * (רובאי, כושר, חוסן) הם תנאי כניסה שרבים עומדים בהם, ולכן אינם מזכים.
+ *
+ * הבדיקה נעשית על התחום בפועל ולא על מעבר השער בכללותו: תפקיד יכול לדרוש
+ * גם תואר וגם תחום, ומי שעדיין לומד ייחסם — ובצדק — למרות התאמת התחום.
+ * לכן מי שקורא לפונקציה חייב לוודא גם `passedGates`.
+ */
+function hasFieldMatch(role, profile) {
+  const fields = (role.gates || {}).requiresFieldMatch;
+  if (!Array.isArray(fields) || fields.length === 0) return false;
+  return fields.indexOf(profile.degreeField) !== -1;
+}
+
 // ── נימוקים ────────────────────────────────────────────────────────────────
 
 /** "למה זה מתאים לך" — נגזר אך ורק מהתשובות שנבחרו בפועל. */
@@ -331,6 +380,15 @@ function selectTop(ranked, profile, all, byRank) {
     taken.add(entry.id);
   };
 
+  // התאמת כפפה נלקחת לפני כל משבצת שמורה, בשני המסלולים. המשבצות השמורות
+  // הן מדיניות אוכלוסייתית — "לרוב המועמדים כדאי להציע ליבה" — והן הנחת
+  // ברירת מחדל שנועדה למי שאין עליו מידע מכריע. כשיש מידע מכריע, כלומר
+  // כשהמועמד הוכשר בדיוק לתפקיד הזה, המדיניות הכללית נסוגה מפניו.
+  ranked.filter(e => e.exactFit)
+        .slice(0, CONFIG.EXACT_FIT_MAX_SLOTS)
+        .forEach(take);
+  const reserved = picked.length;
+
   if (isAdminTrack(profile)) {
     // אין אינדיקציה לליבה — מנהלה תחילה, ואז מה שנותר (בעיקר משל"ט,
     // שאינו דורש בוחן כושר ולכן נשאר רלוונטי גם כאן).
@@ -338,9 +396,13 @@ function selectTop(ranked, profile, all, byRank) {
     // בתוך המנהלה שמורות משבצות לתפקידים המרכזיים, באותו היגיון שבו שמורות
     // משבצות לליבה במסלול השני: אלה שערי הכניסה שנפתחים בניסיון כללי, בעוד
     // תפקיד מקצועי (משפט, בינוי, שכר) רלוונטי רק למי שהגיע עם ההסמכה.
+    //
+    // המשבצת המרכזית נספרת *מעל* הכפפה (`reserved`) ולא מתוך שלוש המשבצות.
+    // רוב תפקידי המנהלה המקצועיים הם בדיוק תפקידי הכפפה, ולכן בלי ההיסט
+    // הזה כל התאמה מדויקת הייתה מבטלת את ההבטחה לשער כניסה מרכזי אחד.
     const admin = ranked.filter(e => roleTrack(e.role) === "admin");
     admin.filter(e => e.role.adminTier === "central").forEach(e => {
-      if (picked.length < CONFIG.ADMIN_MIN_CENTRAL_SLOTS) take(e);
+      if (picked.length < reserved + CONFIG.ADMIN_MIN_CENTRAL_SLOTS) take(e);
     });
     admin.forEach(take);
     ranked.forEach(take);
@@ -348,6 +410,13 @@ function selectTop(ranked, profile, all, byRank) {
   }
 
   // מסלול ליבה: שתי משבצות שמורות לליבה.
+  //
+  // כאן, בשונה מהמנהלה, הכפפה נספרת *בתוך* השתיים ולא מעליהן: `picked.length`
+  // כבר מכיל אותה, ולכן אחרי המשבצת המובטחת לחוקר/בלש/סייר הספירה מגיעה ל-2
+  // והמשבצת השמורה השנייה נפתחת. זה מכוון. במנהלה ההבטחה היא לתפקיד *אחד*
+  // ואם הכפפה תבלע אותה לא יישאר שער כניסה כללי; בליבה ההבטחה היא לשניים,
+  // וויתור על אחד מהם לטובת התפקיד שהמועמד הוכשר אליו הוא בדיוק העסקה
+  // הנכונה — עדיין נשאר תפקיד ליבה ראשי אחד, ועוד משבצת פתוחה.
   //
   // הראשונה מובטחת לחוקר/בלש/סייר — הם עיקר התקנים ולכן תמיד יופיע לפחות
   // אחד מהם. השנייה פתוחה לכל תפקיד ליבה לפי הניקוד, כולל משל"ט וסייר
@@ -402,25 +471,47 @@ function computeResults(answers) {
   const questions = visibleQuestions(answers);
   const earned = computeEarned(answers, questions);
   const maxScore = computeMaxScores(questions);
+  const evidence = computeEvidence(answers, questions);
 
   const all = ROLES.map(role => {
     const gateCheck = checkGates(role, profile);
     const roleEarned = earned[role.id] || 0;
     const roleMax = Math.max(maxScore[role.id] || 0, 1);
-    const matchPct = clamp(Math.round((roleEarned / roleMax) * 100), 0, 100);
+    const rawPct = clamp(Math.round((roleEarned / roleMax) * 100), 0, 100);
+    const roleEvidence = evidence[role.id] || 0;
+
+    // כפפה ליד: הרקע מתאים בדיוק, השערים נפתחו, ושאר התשובות תומכות.
+    // שלושת התנאים נחוצים — בלי השלישי היה מספיק תואר בכלכלה כדי לדחוף
+    // "שכר וגמלאות" לראש הרשימה של מי שכל שאר תשובותיו מצביעות על שטח.
+    const exactFit = hasFieldMatch(role, profile) &&
+                     gateCheck.passed &&
+                     rawPct >= CONFIG.EXACT_FIT_MIN_RAW_PCT;
+
+    let matchPct = rawPct;
+    if (exactFit) {
+      matchPct = Math.max(rawPct, CONFIG.EXACT_FIT_MIN_PCT);
+    } else if (roleEvidence < CONFIG.THIN_EVIDENCE_MIN_QUESTIONS) {
+      matchPct = Math.min(rawPct, CONFIG.THIN_EVIDENCE_MAX_PCT);
+    }
 
     return {
       role,
       id: role.id,
       earned: roleEarned,
       maxScore: maxScore[role.id] || 0,
+      evidence: roleEvidence,
+      rawPct,
+      exactFit,
       matchPct,
       passedGates: gateCheck.passed,
       unmetGates: gateCheck.unmet
     };
   });
 
+  // התאמת כפפה קודמת לאחוז. הרצפה כבר מציבה אותה גבוה, אבל התפקיד שהמועמד
+  // הוכשר אליו צריך להיות ראשון גם כשתפקיד רחב-ראיות אחר הגיע ל-100%.
   const byRank = (a, b) =>
+    ((b.exactFit ? 1 : 0) - (a.exactFit ? 1 : 0)) ||
     (b.matchPct - a.matchPct) ||
     (b.earned - a.earned) ||
     (a.role.priority - b.role.priority);
@@ -745,6 +836,71 @@ function runSanityChecks() {
     });
   check("מסלול מנהלה — תמיד לפחות תפקיד מרכזי אחד", noCentral === 0, noCentral + " חריגים");
 
+  // ── התאמת כפפה ──
+  // רגרסיה על באג שדווח: סטודנט/ית לעבודה סוציאלית שאינו/ה רוצה שטח קיבל/ה
+  // "משרת סטודנט" 100%, ואחריו חוקר ובלש ב-48% — בעוד תקן עוזר/ת לעובד/ת
+  // סוציאלי/ת, שהוא בדיוק התפקיד שהרקע שלו מכשיר, נדחק ל"גם התאימו לך".
+  // הסיבה: שתי משבצות שמורות לליבה נלקחו לפי מדיניות ולא לפי התאמה.
+  const socialStudent = asAnswers({
+    status: ["student"], study_left: "year_plus", degree_field: "health_social",
+    rifleman: "none", environment: "office", fitness: "low", shifts: "day",
+    public: "citizens", work_value: "help_people", work_object: "people",
+    work_reward: "helped", curiosity: "mid", resilience: "mid", youth: "love",
+    arabic: "none_no", tech_affinity: "low", teamwork: "mix", age: "18_24",
+    commitment: "studies"
+  });
+  const socialRes = computeResults(socialStudent);
+  check("סטודנט/ית לעבודה סוציאלית — התקן המתאים ראשון",
+        socialRes.top3[0].id === "student_social_assistant",
+        socialRes.top3.map(e => e.id + " " + e.matchPct + "%").join(", "));
+  check("סטודנט/ית לעבודה סוציאלית — ההתאמה מעל רצפת הכפפה",
+        socialRes.top3[0].matchPct >= CONFIG.EXACT_FIT_MIN_PCT,
+        socialRes.top3[0].matchPct + "%");
+  check("כפפה במסלול ליבה — עדיין נשאר תפקיד ליבה ראשי",
+        socialRes.top3.some(e => ["patrol", "detective", "investigator"].indexOf(e.id) !== -1),
+        socialRes.top3.map(e => e.id).join(", "));
+
+  // בוגר/ת עבודה סוציאלית — אותו היגיון, אבל התקן המקצועי המלא.
+  const socialGraduate = computeResults(asAnswers(Object.assign({}, adminBase, {
+    status: ["civilian", "graduate"], degree_field: "health_social",
+    work_value: "help_people", work_object: "people", work_reward: "helped"
+  })));
+  check("בוגר/ת עבודה סוציאלית — רווחה ראשונה בהתאמת כפפה",
+        socialGraduate.top3[0].id === "admin_welfare" && socialGraduate.top3[0].exactFit === true,
+        socialGraduate.top3.map(e => e.id + " " + e.matchPct + "%").join(", "));
+
+  // הגבול השני של הכלל: תואר מתאים אינו מספיק כשכל שאר התשובות מצביעות
+  // למקום אחר. בלי התנאי הזה בוגר כלכלה שרוצה שטח היה מקבל "שכר וגמלאות"
+  // בראש הרשימה רק מפני שהשער נפתח לו.
+  const econField = computeResults(asAnswers({
+    status: ["graduate"], degree_field: "econ", rifleman: "r5",
+    environment: "field", fitness: "very_high", shifts: "nights",
+    public: "citizens", curiosity: "mid", resilience: "high", youth: "no",
+    arabic: "none_open", tech_affinity: "low", patience: "mid", teamwork: "team",
+    risk: "high", age: "25_34", commitment: "long"
+  }));
+  check("תואר מתאים בלי תשובות תומכות — אין התאמת כפפה",
+        econField.all.find(e => e.id === "admin_payroll").exactFit === false,
+        "אחוז גולמי " + econField.all.find(e => e.id === "admin_payroll").rawPct + "%");
+
+  // תפקיד שנחסם בשער אינו מקבל כפפה, גם כשהתחום מתאים בדיוק: סטודנט/ית
+  // לעבודה סוציאלית עדיין אינו/ה עובד/ת סוציאלי/ת מוסמך/ת.
+  const welfareEntry = socialRes.all.find(e => e.id === "admin_welfare");
+  check("תפקיד חסום אינו מקבל התאמת כפפה",
+        welfareEntry.passedGates === false && welfareEntry.exactFit === false);
+
+  // ── רוחב הראיות ──
+  // "משרת סטודנט" נשען על ארבע שאלות בלבד, ולכן כל סטודנט הגיע אצלו ל-100%
+  // — מעל התאמות שנשענות על שתים-עשרה שאלות. התקרה מחזירה את הפרופורציה.
+  const studentEntry = socialRes.all.find(e => e.id === "student");
+  check("תפקיד שנשען על מעט שאלות אינו מוצג כהתאמה כמעט מושלמת",
+        studentEntry.evidence < CONFIG.THIN_EVIDENCE_MIN_QUESTIONS &&
+        studentEntry.rawPct === 100 && studentEntry.matchPct === CONFIG.THIN_EVIDENCE_MAX_PCT,
+        "ראיות " + studentEntry.evidence + " שאלות, " +
+        studentEntry.rawPct + "% → " + studentEntry.matchPct + "%");
+  check("תקרת הראיות הדקות נמוכה מרצפת הכפפה",
+        CONFIG.THIN_EVIDENCE_MAX_PCT < CONFIG.EXACT_FIT_MIN_PCT);
+
   // כל התפקידים שמקורם באתר הרשמי חייבים דרישות אמיתיות ולא שדות ריקים.
   const siteNoReq = ROLES.filter(r => r.source === "site" &&
     (!r.requirements || r.requirements.length === 0)).map(r => r.id);
@@ -780,8 +936,8 @@ if (typeof window !== "undefined" && typeof CONFIG !== "undefined" && CONFIG.DEB
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
-    buildProfile, visibleQuestions, computeEarned, computeMaxScores, checkGates,
-    buildReasons, computeResults, runSanityChecks, getRole, getQuestion,
-    isAdminTrack, roleTrack, asAnswers, toArray
+    buildProfile, visibleQuestions, computeEarned, computeMaxScores, computeEvidence,
+    checkGates, hasFieldMatch, buildReasons, computeResults, runSanityChecks,
+    getRole, getQuestion, isAdminTrack, roleTrack, asAnswers, toArray
   };
 }
