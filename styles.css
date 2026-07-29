@@ -1,0 +1,755 @@
+/* ---------------------------------------------------------------------------
+   styles.css — מצפן הקריירה. נייבי-לבן, RTL, mobile-first.
+   אותה שפה עיצובית של מפת החום ודשבורד המועמדים.
+
+   כל המידות בכפתורי בחירה נשמרות מעל 48px — זו אפליקציה שנצרכת בעיקר בנייד,
+   ביום גיוס, על מסך קטן וביד אחת.
+   --------------------------------------------------------------------------- */
+
+:root {
+  --navy:        #0d1b3e;
+  --navy-2:      #12244d;
+  --navy-soft:   #1e3a63;
+  --accent:      #2563eb;
+  --accent-soft: #dbeafe;
+  --gold:        #c9a227;
+
+  --bg:      #f1f5f9;
+  --panel:   #ffffff;
+  --ink:     #0f172a;
+  --ink-mid: #475569;
+  --ink-soft:#64748b;
+  --line:    #e2e8f0;
+
+  --ok:   #16a34a;
+  --warn: #b45309;
+  --warn-bg: #fffbeb;
+  --warn-line: #fcd34d;
+
+  --radius:    14px;
+  --radius-sm: 10px;
+  --shadow:    0 2px 14px rgba(13, 27, 62, .10);
+  --shadow-lg: 0 10px 34px rgba(13, 27, 62, .16);
+
+  --maxw: 860px;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+html {
+  /* מונע מ-iOS לנפח טקסט כשמסובבים את המכשיר לרוחב. */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Heebo", "Rubik", system-ui, "Segoe UI", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  direction: rtl;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  /* רשת ביטחון נגד גלילה אופקית במסך צר. clip ולא hidden — hidden היה הופך
+     את body למיכל גלילה ושובר את סרגל הניווט הדביק שבתחתית מסך השאלון. */
+  overflow-x: clip;
+}
+
+/* שמות תפקידים ארוכים ("מסלול טכנולוגי / סייבר") לא ישברו את הפריסה בנייד. */
+h1, h2, h3, h4, h5, p, li, dd, .option { overflow-wrap: anywhere; }
+
+/* touch-action מבטל את השהיית 300ms של דפדפני נייד בלחיצה. */
+button { font-family: inherit; touch-action: manipulation; }
+
+a { color: var(--accent); }
+
+/* ── סרגל עליון ─────────────────────────────────────────────────────────── */
+
+.topbar {
+  background: var(--navy);
+  color: #e2e8f0;
+  padding: 12px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .06);
+}
+
+.topbar-inner {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.brand-mark {
+  width: 38px; height: 38px;
+  flex: 0 0 38px;
+  border-radius: 10px;
+  background: var(--navy-soft);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.brand-mark img { width: 100%; height: 100%; display: block; }
+
+.brand-text { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.brand-text strong { font-size: 15.5px; font-weight: 700; }
+.brand-text span   { font-size: 11.5px; color: #94a3b8; }
+
+.topbar-actions { margin-inline-start: auto; display: flex; gap: 6px; }
+
+.topbar-btn {
+  background: transparent;
+  border: 1px solid rgba(226, 232, 240, .28);
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.topbar-btn:hover { background: rgba(226, 232, 240, .12); }
+.topbar-btn[hidden] { display: none; }
+
+/* ── מעטפת ומסכים ───────────────────────────────────────────────────────── */
+
+.wrap {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 20px 16px 56px;
+}
+
+.screen { display: none; animation: fade .28s ease both; }
+.screen.is-active { display: block; }
+
+@keyframes fade {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen, .option, .role-card { animation: none !important; transition: none !important; }
+}
+
+/* ── באנר כנות ──────────────────────────────────────────────────────────── */
+
+.disclaimer {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  color: #7c4a03;
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.disclaimer .ico { flex: 0 0 auto; font-size: 15px; line-height: 1.45; }
+
+/* ── מסך פתיחה ──────────────────────────────────────────────────────────── */
+
+.hero {
+  background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 62%, var(--navy-soft) 100%);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 34px 24px 30px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.hero-emblem { width: 74px; height: 74px; margin: 0 auto 14px; display: block; }
+
+.hero h1 {
+  margin: 0 0 10px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -.4px;
+}
+
+.hero p {
+  margin: 0 auto;
+  max-width: 46ch;
+  font-size: 15.5px;
+  color: #cbd5e1;
+}
+
+.btn-primary {
+  display: inline-block;
+  margin-top: 22px;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  padding: 14px 40px;
+  font-size: 16.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, .38);
+  transition: transform .12s, box-shadow .15s, background .15s;
+}
+.btn-primary:hover  { background: #1d4ed8; box-shadow: 0 6px 18px rgba(37, 99, 235, .46); }
+.btn-primary:active { transform: translateY(1px); }
+
+.steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.step {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 14px 15px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  box-shadow: var(--shadow);
+}
+
+.step-num {
+  flex: 0 0 28px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--navy);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+.step strong { display: block; font-size: 14.5px; }
+.step span   { font-size: 13px; color: var(--ink-soft); }
+
+@media (min-width: 700px) {
+  .steps { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ── מסך שאלון ──────────────────────────────────────────────────────────── */
+
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: 7px;
+}
+.progress-head strong { color: var(--navy); font-size: 13.5px; }
+
+.progress-track {
+  height: 7px;
+  background: var(--line);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.progress-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent), var(--navy-soft));
+  border-radius: 99px;
+  transition: width .3s ease;
+}
+
+.question-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px 20px;
+  box-shadow: var(--shadow);
+}
+
+.question-card h2 {
+  margin: 0 0 18px;
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.45;
+}
+
+.question-hint {
+  margin: -12px 0 16px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+.options { display: flex; flex-direction: column; gap: 9px; }
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  width: 100%;
+  text-align: start;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px 15px;
+  font-size: 15.5px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .1s;
+}
+/* hover רק במכשירים עם עכבר. במגע, מצב ה-hover "נתקע" על האפשרות האחרונה
+   שנלחצה ונראה כאילו היא מסומנת — בדיוק הבלבול שאנחנו רוצים למנוע. */
+@media (hover: hover) {
+  .option:hover { border-color: var(--accent); background: #f8fbff; }
+  .option:hover .option-dot { border-color: var(--accent); }
+}
+.option:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.option.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.option-dot {
+  flex: 0 0 20px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  display: grid;
+  place-items: center;
+  transition: border-color .15s;
+}
+.option.is-selected .option-dot { border-color: var(--accent); }
+.option.is-selected .option-dot::after {
+  content: "";
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* בחירה מרובה — ריבוע עם וי, כדי שיהיה ברור שאפשר לסמן יותר מאחד. */
+.option.is-multi .option-dot { border-radius: 5px; }
+.option.is-multi.is-selected .option-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.option.is-multi.is-selected .option-dot::after {
+  content: "✓";
+  width: auto; height: auto;
+  background: none;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.quiz-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.btn-ghost {
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--ink-mid);
+  border-radius: 9px;
+  padding: 10px 18px;
+  font-size: 14.5px;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.btn-ghost:hover:not(:disabled) { border-color: var(--navy-soft); color: var(--navy); }
+.btn-ghost:disabled { opacity: .42; cursor: not-allowed; }
+
+.btn-next {
+  background: var(--navy);
+  color: #fff;
+  border: 0;
+  border-radius: 9px;
+  padding: 11px 26px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-next:hover:not(:disabled) { background: var(--navy-soft); }
+.btn-next:disabled { opacity: .42; cursor: not-allowed; }
+
+/* ── מסך תוצאות ─────────────────────────────────────────────────────────── */
+
+.section-head { margin: 6px 0 16px; }
+.section-head h2 {
+  margin: 0 0 5px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--navy);
+}
+.section-head p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+.role-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+.role-card.is-top { border-color: #c7d7f5; box-shadow: var(--shadow-lg); }
+
+.role-head { display: flex; gap: 14px; align-items: flex-start; }
+
+.rank-badge {
+  flex: 0 0 auto;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 3px;
+}
+
+.role-title { flex: 1 1 auto; min-width: 0; }
+.role-title h3 {
+  margin: 0 0 5px;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.35;
+}
+
+.tag {
+  display: inline-block;
+  background: #eef2f7;
+  color: var(--ink-mid);
+  border-radius: 99px;
+  padding: 2.5px 11px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.role-oneliner {
+  margin: 9px 0 0;
+  font-size: 14.5px;
+  color: var(--ink-mid);
+  line-height: 1.6;
+}
+
+/* טבעת אחוז ההתאמה — conic-gradient, בלי ספריות גרפים. */
+.match-ring {
+  flex: 0 0 76px;
+  width: 76px; height: 76px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--accent) calc(var(--pct) * 1%), var(--line) 0);
+  position: relative;
+}
+.match-ring::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  background: var(--panel);
+  border-radius: 50%;
+}
+.match-ring-text { position: relative; text-align: center; line-height: 1.15; }
+.match-ring-text b { display: block; font-size: 19px; font-weight: 800; color: var(--navy); }
+.match-ring-text span { font-size: 10px; color: var(--ink-soft); }
+
+/* בלוק "למה זה מתאים לך" */
+.why {
+  margin-top: 15px;
+  background: #f7faff;
+  border: 1px solid #dbe6f8;
+  border-radius: var(--radius-sm);
+  padding: 13px 15px;
+}
+.why h4 {
+  margin: 0 0 9px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--navy);
+}
+.why ul { margin: 0; padding-inline-start: 18px; }
+.why li { font-size: 13.5px; color: var(--ink-mid); margin-bottom: 5px; line-height: 1.55; }
+.why li:last-child { margin-bottom: 0; }
+.why li .q { display: block; font-size: 11.5px; color: var(--ink-soft); }
+
+/* עובדות מפתח */
+.facts {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+@media (min-width: 620px) {
+  .facts { grid-template-columns: 1fr 1fr; }
+}
+
+.fact {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: #fcfdff;
+}
+.fact dt {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-bottom: 3px;
+}
+.fact dd { margin: 0; font-size: 13.5px; color: var(--ink); line-height: 1.55; }
+.fact dd.is-unknown { color: var(--ink-soft); font-style: italic; }
+.fact ul { margin: 0; padding-inline-start: 17px; }
+.fact li { font-size: 13.5px; margin-bottom: 3px; }
+
+/* "קרא/י עוד" */
+.more { margin-top: 12px; }
+.more-toggle {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 5px 0;
+}
+.more-toggle:hover { text-decoration: underline; }
+.more-body {
+  display: none;
+  margin-top: 8px;
+  border-top: 1px dashed var(--line);
+  padding-top: 11px;
+}
+.more-body.is-open { display: block; }
+.more-body h5 {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+.more-body p { margin: 0 0 11px; font-size: 13.5px; color: var(--ink-mid); line-height: 1.65; }
+.more-body p:last-child { margin-bottom: 0; }
+
+.role-actions { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 9px; }
+
+.btn-apply {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 9px;
+  padding: 11px 22px;
+  font-size: 14.5px;
+  font-weight: 700;
+  transition: background .15s;
+}
+.btn-apply:hover { background: #1d4ed8; }
+
+/* תג לתפקיד שנוסף מחוץ למאגר הרשמי */
+.tag-added {
+  background: #fff7e6;
+  color: #8a5a00;
+  border: 1px solid #f5d99b;
+  margin-inline-start: 5px;
+}
+
+/* ניסוח ה-AI, כשהשכבה האופציונלית פעילה */
+.why-ai {
+  margin: 9px 0 0;
+  font-size: 13.5px;
+  color: var(--ink-mid);
+  line-height: 1.6;
+}
+
+/* בלוק "גם התאימו לך" — התמחויות שנדחקו ע"י מדיניות הליבה */
+.alsofit-block {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-inline-start: 4px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 15px 17px;
+  margin: 18px 0;
+}
+.alsofit-block h3 { margin: 0 0 4px; font-size: 15.5px; color: var(--navy); }
+.alsofit-block > p { margin: 0 0 11px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; }
+.alsofit-list { list-style: none; margin: 0; padding: 0; }
+.alsofit-list li {
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13.5px;
+}
+.alsofit-list li:first-child { border-top: 0; }
+.alsofit-list strong { color: var(--navy); }
+.alsofit-list span { color: var(--ink-soft); }
+
+/* בלוק שקיפות — תפקידים שנחסמו בתנאי-סף */
+.blocked-block {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-inline-start: 4px solid var(--gold);
+  border-radius: var(--radius-sm);
+  padding: 15px 17px;
+  margin: 18px 0;
+}
+.blocked-block h3 { margin: 0 0 4px; font-size: 15.5px; color: var(--navy); }
+.blocked-block > p { margin: 0 0 11px; font-size: 12.5px; color: var(--ink-soft); }
+.blocked-list { list-style: none; margin: 0; padding: 0; }
+.blocked-list li {
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13.5px;
+}
+.blocked-list li:first-child { border-top: 0; }
+.blocked-list strong { color: var(--navy); }
+.blocked-list span { color: var(--ink-soft); }
+
+.results-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+/* ── קטלוג ──────────────────────────────────────────────────────────────── */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+
+.chip {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 7px 15px;
+  font-size: 13px;
+  color: var(--ink-mid);
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.chip:hover { border-color: var(--accent); color: var(--navy); }
+.chip.is-active {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ── כותרת תחתונה ───────────────────────────────────────────────────────── */
+
+.footer {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 18px 16px 34px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+.footer a { color: var(--ink-mid); }
+
+/* ── נגישות ─────────────────────────────────────────────────────────────── */
+
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── נייד ────────────────────────────────────────────────────────────────
+   האפליקציה נצרכת בעיקר בטלפון, ביום גיוס, ביד אחת. שני הכללים שמנחים
+   את הבלוקים כאן: כל מטרת מגע היא לפחות 44px, וכפתורי הניווט חייבים
+   להיות בהישג אגודל בלי לגלול לתחתית הרשימה.
+   ----------------------------------------------------------------------- */
+
+@media (max-width: 700px) {
+  .wrap { padding: 16px 16px 24px; }
+
+  /* מטרות מגע בסרגל העליון. הכפתורים לא נשברים לשתי שורות; אם המקום צר,
+     שם האפליקציה הוא זה שמתקצר. */
+  .topbar { padding: 9px 14px; }
+  .topbar-btn { min-height: 44px; padding: 7px 13px; white-space: nowrap; }
+  .brand-text strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* סרגל ניווט דביק — "חזרה"/"הבא" נשארים על המסך גם כשרשימת האפשרויות
+     ארוכה מהמסך, ונמתחים לרוחב מלא כדי שיהיו נוחים לאגודל.
+     המרווח התחתון מכבד את סרגל המחוות של האייפון. */
+  .quiz-nav {
+    position: sticky;
+    bottom: 0;
+    z-index: 15;
+    margin: 14px -16px 0;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: rgba(241, 245, 249, .96);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid var(--line);
+  }
+  .quiz-nav .btn-ghost { flex: 1 1 34%; padding: 10px 12px; }
+  .quiz-nav .btn-next  { flex: 1 1 66%; padding: 11px 12px; }
+  .quiz-nav .btn-ghost, .quiz-nav .btn-next { min-height: 50px; }
+
+  /* פעולות ברוחב מלא, בערימה — במקום שורה שנשברת בצורה אקראית. */
+  .results-actions { flex-direction: column; }
+  .results-actions .btn-ghost,
+  .results-actions .btn-next { width: 100%; min-height: 48px; }
+  .role-actions { flex-direction: column; }
+  .role-actions .btn-apply,
+  .role-actions .more-toggle { width: 100%; text-align: center; min-height: 46px; }
+  .btn-apply { padding: 12px 22px; }
+
+  /* מסנני הקטלוג — רצועה נגללת לרוחב במקום ארבע שורות של צ'יפים. */
+  .filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-inline: -16px;
+    padding-inline: 16px;
+    padding-bottom: 4px;
+  }
+  .filters::-webkit-scrollbar { display: none; }
+  .chip { flex: 0 0 auto; min-height: 40px; padding: 8px 15px; }
+
+  .footer { padding: 16px 16px 28px; }
+}
+
+@media (max-width: 480px) {
+  .hero { padding: 26px 17px 24px; }
+  .hero h1 { font-size: 25px; }
+  .hero p { font-size: 14.5px; }
+  .hero-emblem { width: 62px; height: 62px; }
+
+  /* בטלפון צר הכותרת המשנית בסרגל גוזלת את הרוחב מהכפתורים. */
+  .brand-text span { display: none; }
+  .brand-mark { width: 34px; height: 34px; flex-basis: 34px; }
+  .topbar-btn { font-size: 12.5px; padding: 7px 11px; }
+
+  .question-card { padding: 18px 15px; }
+  .question-card h2 { font-size: 18.5px; }
+  .option { font-size: 14.5px; padding: 11px 13px; }
+  .role-card { padding: 15px 14px; }
+  .role-head { gap: 10px; }
+  .match-ring { flex-basis: 62px; width: 62px; height: 62px; }
+  .match-ring::before { inset: 6px; }
+  .match-ring-text b { font-size: 16px; }
+  .role-title h3 { font-size: 17px; }
+  .section-head h2 { font-size: 21px; }
+  .btn-primary { width: 100%; padding: 14px 20px; }
+  .alsofit-block, .blocked-block { padding: 14px 15px; }
+}

@@ -1,0 +1,19 @@
+# סביבות ופיתוח
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+node_modules/
+
+# עורכים
+.idea/
+.vscode/
+*.swp
+
+# מערכת הפעלה
+.DS_Store
+Thumbs.db
+
+# סודות — לעולם לא בריפו. המפתח נקרא מהסביבה בלבד (ai/app.py).
+.env
+*.key
